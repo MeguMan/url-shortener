@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/MeguMan/go-http-api/internal/app/apiserver"
+	"github.com/MeguMan/url-shortener/internal/app/apiserver"
 	_ "github.com/lib/pq"
 	"log"
 )
