@@ -2,7 +2,7 @@ package apiserver
 
 import (
 	"database/sql"
-	"github.com/MeguMan/url-shortener/internal/app/store"
+	store2 "github.com/MeguMan/url-shortener/internal/app/store/sqlstore"
 	"net/http"
 )
 
@@ -15,7 +15,7 @@ func Start(DatabaseURL string) error {
 	}
 
 	defer db.Close()
-	s := store.New(db)
+	s := store2.New(db)
 	server := newServer(s)
 
 	return http.ListenAndServe(":8181", server)

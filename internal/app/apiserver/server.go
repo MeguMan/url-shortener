@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/MeguMan/url-shortener/internal/app/model"
-	"github.com/MeguMan/url-shortener/internal/app/store"
+	store2 "github.com/MeguMan/url-shortener/internal/app/store/sqlstore"
 	"github.com/gorilla/mux"
 	"math/rand"
 	"net/http"
@@ -14,14 +14,14 @@ import (
 
 type server struct {
 	router *mux.Router
-	store  store.Store
+	store  store2.Store
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
-func newServer(store *store.Store) *server {
+func newServer(store *store2.Store) *server {
 	s := &server{
 		router: mux.NewRouter(),
 		store:  *store,
