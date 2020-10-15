@@ -6,6 +6,7 @@ import (
 )
 
 type Link struct {
+	ID            int
 	InitialLink   string
 	ShortenedLink string
 }

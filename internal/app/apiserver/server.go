@@ -2,11 +2,13 @@ package apiserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/MeguMan/url-shortener/internal/app/model"
 	"github.com/MeguMan/url-shortener/internal/app/store"
 	"github.com/gorilla/mux"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -45,21 +47,32 @@ func (s *server) redirect() func(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			panic(err)
 		}
+		defer rows.Close()
 
 		l := model.Link{}
 		for rows.Next() {
-			err = rows.Scan(&l.InitialLink, &l.ShortenedLink)
+			err := rows.Scan(&l.ID, &l.InitialLink, &l.ShortenedLink)
 			if err != nil {
-				panic(err)
+				fmt.Println(err)
+				continue
 			}
 		}
 
-		http.Redirect(w, r, l.InitialLink, http.StatusSeeOther)
+		l.InitialLink = s.checkProtocol(l.InitialLink)
+		http.Redirect(w, r, l.InitialLink, http.StatusTemporaryRedirect)
 	}
+}
+
+func (s *server) checkProtocol(link string) string {
+	if strings.Contains(link, "https://") || strings.Contains(link, "http://") {
+		return link
+	}
+	return "https://" + link
 }
 
 func (s *server) createLink() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("asd")
 		db := s.store.Db
 		link := model.Link{}
 
@@ -78,7 +91,6 @@ func (s *server) createLink() func(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			panic(err)
 		}
-
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(link.ShortenedLink)
 	}
