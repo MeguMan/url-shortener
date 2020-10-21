@@ -17,7 +17,7 @@ func Start(DatabaseURL string) error {
 	s := postgres_store.New(db)
 	server := NewServer(s)
 
-	return http.ListenAndServe(":8181", server)
+	return http.ListenAndServe(":8080", server)
 }
 
 func newDB(databaseURL string) (*sql.DB, error) {

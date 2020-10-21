@@ -62,18 +62,14 @@ func (s *server) createLink() func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewDecoder(r.Body).Decode(&l)
 
-		err := l.Validate()
+		l.ShortenedLink = RandString(7)
+		lr := s.store.Link()
+
+		err := lr.Create(&l)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			fmt.Println(err)
 			return
-		}
-		l.ShortenedLink = RandString(7)
-		lr := s.store.Link()
-
-		err = lr.Create(&l)
-		if err != nil {
-			panic(err)
 		}
 
 		w.WriteHeader(http.StatusCreated)

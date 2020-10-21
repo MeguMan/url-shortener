@@ -11,6 +11,10 @@ type LinkRepository struct {
 }
 
 func (lr *LinkRepository) Create(l *model.Link) error {
+	if err := l.Validate(); err != nil {
+		return err
+	}
+
 	_, err := lr.store.db.Exec("insert into links (initial_link, shortened_link) values ($1, $2)",
 		l.InitialLink, l.ShortenedLink)
 
