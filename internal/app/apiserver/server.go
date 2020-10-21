@@ -4,27 +4,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/MeguMan/url-shortener/internal/app/model"
-	store2 "github.com/MeguMan/url-shortener/internal/app/store/sqlstore"
+	"github.com/MeguMan/url-shortener/internal/app/store"
 	"github.com/gorilla/mux"
 	"math/rand"
 	"net/http"
-	"strings"
 	"time"
 )
 
 type server struct {
 	router *mux.Router
-	store  store2.Store
+	store  store.Store
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
-func newServer(store *store2.Store) *server {
+func NewServer(store store.Store) *server {
 	s := &server{
 		router: mux.NewRouter(),
-		store:  *store,
+		store:  store,
 	}
 
 	s.configureRouter()
@@ -39,60 +38,46 @@ func (s *server) configureRouter() {
 
 func (s *server) redirect() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		db := s.store.Db
 		vars := mux.Vars(r)
 		shortenedLink := vars["shortenedLink"]
 
-		rows, err := db.Query("select * from links where shortened_link = $1", shortenedLink)
+		lr := s.store.Link()
+
+		l, err := lr.FindByShortenedLink(shortenedLink)
 		if err != nil {
-			panic(err)
+			http.Error(w, err.Error(), http.StatusNotFound)
+			fmt.Println(err)
+			return
 		}
-		defer rows.Close()
+		l.AddProtocol()
 
-		l := model.Link{}
-		for rows.Next() {
-			err := rows.Scan(&l.ID, &l.InitialLink, &l.ShortenedLink)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-		}
-
-		l.InitialLink = s.checkProtocol(l.InitialLink)
 		http.Redirect(w, r, l.InitialLink, http.StatusTemporaryRedirect)
 	}
 }
 
-func (s *server) checkProtocol(link string) string {
-	if strings.Contains(link, "https://") || strings.Contains(link, "http://") {
-		return link
-	}
-	return "https://" + link
-}
-
 func (s *server) createLink() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("asd")
-		db := s.store.Db
-		link := model.Link{}
+		l := model.Link{}
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewDecoder(r.Body).Decode(&link)
-		err := link.Validate()
+		_ = json.NewDecoder(r.Body).Decode(&l)
+
+		err := l.Validate()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			fmt.Println(err)
 			return
 		}
+		l.ShortenedLink = RandString(7)
+		lr := s.store.Link()
 
-		link.ShortenedLink = RandString(7)
-
-		_, err = db.Exec("insert into links (initial_link, shortened_link) values ($1, $2)",
-			link.InitialLink, link.ShortenedLink)
+		err = lr.Create(&l)
 		if err != nil {
 			panic(err)
 		}
+
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(link.ShortenedLink)
+		json.NewEncoder(w).Encode(l.ShortenedLink)
 	}
 }
 

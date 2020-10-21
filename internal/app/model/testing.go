@@ -7,6 +7,6 @@ func TestLink(t *testing.T) *Link {
 
 	return &Link{
 		InitialLink:   "google.com",
-		ShortenedLink: "cGasd45",
+		ShortenedLink: "12345",
 	}
 }
